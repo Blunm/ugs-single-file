@@ -597,7 +597,7 @@ a { color: var(--theme-text); }
   <main class="main-content">
     <div class="content-wrapper">
       <header class="page-header">
-        <div class="eyebrow">Ultimate Game Stash</div>
+        <div class="eyebrow">The Candy Stash</div>
         <h1>Candy Stash</h1>
         <p class="subtitle">
           Browse and search files from
