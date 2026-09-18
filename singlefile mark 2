@@ -1,0 +1,1873 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>UGS Files</title>
+
+    <style>
+        :root {
+            --bg-dark: #11131f;
+            --bg-purple: #241634;
+
+            --sidebar-width: 86px;
+            --sidebar-expanded: 190px;
+
+            --primary: #5986da;
+            --primary-hover: #79aadb;
+            --primary-glow: rgba(89, 134, 218, 0.4);
+
+            --text: #ffffff;
+            --text-muted: rgba(255,255,255,0.62);
+
+            --glass: rgba(14, 16, 28, 0.68);
+            --border: rgba(255,255,255,0.1);
+
+            --radius: 12px;
+            --transition: 0.22s ease;
+            --accent-2: #9b6cff;
+            --neon: #78c7ff;
+            --glow-1: rgba(89,134,218,0.24);
+            --glow-2: rgba(155,108,255,0.20);
+            --surface: rgba(255,255,255,0.075);
+            --surface-strong: rgba(255,255,255,0.12);
+        }
+
+        :root[data-theme="light"] {
+            --bg-dark: #edf3ff;
+            --bg-purple: #f4ecff;
+            --primary: #416fd0;
+            --primary-hover: #315db9;
+            --primary-glow: rgba(65,111,208,0.28);
+            --text: #172033;
+            --text-muted: rgba(23,32,51,0.64);
+            --glass: rgba(255,255,255,0.68);
+            --border: rgba(30,50,90,0.13);
+            --surface: rgba(255,255,255,0.62);
+            --surface-strong: rgba(255,255,255,0.82);
+            --glow-1: rgba(89,134,218,0.18);
+            --glow-2: rgba(155,108,255,0.14);
+        }
+
+        /* =========================================
+           RESET
+        ========================================= */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            color: var(--text);
+
+            overflow-x: hidden;
+
+            background:
+                radial-gradient(
+                    circle at 10% 10%,
+                    rgba(89,134,218,0.15),
+                    transparent 30%
+                ),
+                radial-gradient(
+                    circle at 90% 90%,
+                    rgba(132,58,190,0.16),
+                    transparent 30%
+                ),
+                linear-gradient(
+                    135deg,
+                    var(--bg-dark),
+                    var(--bg-purple)
+                );
+
+            background-attachment: fixed;
+            transition: background 0.45s ease, color 0.35s ease;
+        }
+
+        /* Animated ambient glow */
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            width: 42vw;
+            height: 42vw;
+            max-width: 620px;
+            max-height: 620px;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(70px);
+            opacity: 0.55;
+            z-index: -2;
+            animation: ambientFloat 13s ease-in-out infinite alternate;
+        }
+
+        body::before {
+            top: -18vw;
+            left: -12vw;
+            background: var(--glow-1);
+        }
+
+        body::after {
+            right: -16vw;
+            bottom: -18vw;
+            background: var(--glow-2);
+            animation-delay: -6s;
+        }
+
+        @keyframes ambientFloat {
+            from { transform: translate3d(0,0,0) scale(1); }
+            to { transform: translate3d(4vw,3vh,0) scale(1.12); }
+        }
+
+        /* =========================================
+           PARTICLE CANVAS
+        ========================================= */
+
+        #particleCanvas {
+            position: fixed;
+            inset: 0;
+
+            width: 100%;
+            height: 100%;
+
+            pointer-events: none;
+
+            z-index: -1;
+
+            opacity: 0.75;
+        }
+
+        /* =========================================
+           SIDEBAR
+        ========================================= */
+
+        .sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+
+            width: var(--sidebar-width);
+
+            padding: 14px 10px;
+
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            background: var(--glass);
+
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+
+            border-right: 1px solid var(--border);
+
+            box-shadow:
+                5px 0 30px rgba(0,0,0,0.28),
+                inset -1px 0 rgba(255,255,255,0.06);
+
+            z-index: 1000;
+            isolation: isolate;
+
+            overflow-x: hidden;
+            overflow-y: auto;
+
+            transition:
+                width var(--transition);
+        }
+
+        .sidebar.expanded {
+            width: var(--sidebar-expanded);
+        }
+
+        .sidebar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -1px;
+            width: 2px;
+            height: 56px;
+            border-radius: 99px;
+            background: linear-gradient(180deg, transparent, var(--neon), var(--accent-2), transparent);
+            box-shadow: 0 0 14px var(--primary), 0 0 28px var(--accent-2);
+            transform: translateY(var(--indicator-y, 0px));
+            transition: transform 0.32s cubic-bezier(.22,1,.36,1), opacity .2s ease;
+            opacity: .9;
+            z-index: 4;
+        }
+
+        /* =========================================
+           SIDEBAR TOP
+        ========================================= */
+
+        .sidebar-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            margin-bottom: 5px;
+        }
+
+        .sidebar-toggle {
+            flex: 1;
+
+            height: 42px;
+
+            border: 1px solid var(--border);
+            border-radius: 10px;
+
+            background: rgba(255,255,255,0.07);
+
+            color: white;
+
+            font-size: 18px;
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                background var(--transition),
+                transform var(--transition);
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255,255,255,0.13);
+            transform: translateY(-1px);
+        }
+
+        .sidebar-title {
+            display: none;
+
+            white-space: nowrap;
+
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1px;
+
+            color: var(--text-muted);
+        }
+
+        .sidebar.expanded .sidebar-title {
+            display: block;
+        }
+
+        /* =========================================
+           SIDEBAR SCROLLBAR
+        ========================================= */
+
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.18);
+            border-radius: 10px;
+        }
+
+        /* =========================================
+           LETTER BUTTONS
+        ========================================= */
+
+        .sidebar-btn {
+            position: relative;
+
+            width: 100%;
+            min-height: 44px;
+
+            flex-shrink: 0;
+
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #638fe2,
+                    #4f78c8
+                );
+
+            color: white;
+
+            font-size: 16px;
+            font-weight: 800;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 4px 12px rgba(0,0,0,0.18),
+                inset 0 1px rgba(255,255,255,0.12);
+
+            transition:
+                transform var(--transition),
+                background var(--transition),
+                box-shadow var(--transition);
+        }
+
+        .sidebar-btn:hover {
+            background:
+                linear-gradient(
+                    145deg,
+                    #79aadb,
+                    #638fe2
+                );
+
+            transform: translateY(-2px) scale(1.03);
+
+            box-shadow:
+                0 7px 18px var(--primary-glow);
+        }
+
+        .sidebar-btn.active {
+            background:
+                linear-gradient(
+                    145deg,
+                    #83b5ff,
+                    #5986da
+                );
+
+            box-shadow:
+                0 0 0 2px rgba(121,170,219,0.25),
+                0 0 18px rgba(89,134,218,0.3);
+        }
+
+        .sidebar-btn.empty {
+            opacity: 0.25;
+            cursor: default;
+        }
+
+        .sidebar-btn.empty:hover {
+            transform: none;
+            background:
+                linear-gradient(
+                    145deg,
+                    #638fe2,
+                    #4f78c8
+                );
+            box-shadow:
+                0 4px 12px rgba(0,0,0,0.18);
+        }
+
+        .sidebar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            overflow: hidden;
+        }
+
+        .sidebar-btn .nav-letter {
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar-btn .file-count {
+            min-width: 20px;
+            height: 18px;
+            padding: 0 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: rgba(8,12,28,0.28);
+            border: 1px solid rgba(255,255,255,0.16);
+            color: rgba(255,255,255,0.92);
+            font-size: 10px;
+            line-height: 1;
+            font-weight: 800;
+            box-shadow: 0 0 10px rgba(120,199,255,.14);
+            transition: transform .22s ease, box-shadow .22s ease;
+        }
+
+        .sidebar-btn:hover .file-count,
+        .sidebar-btn.active .file-count {
+            transform: scale(1.08);
+            box-shadow: 0 0 12px rgba(120,199,255,.28);
+        }
+
+        .sidebar-btn .nav-icon {
+            font-size: 13px;
+            opacity: .85;
+            filter: drop-shadow(0 0 5px rgba(120,199,255,.25));
+        }
+
+        .sidebar:not(.expanded) .sidebar-btn .file-count {
+            position: absolute;
+            right: 4px;
+            bottom: 3px;
+            min-width: 15px;
+            height: 14px;
+            padding: 0 3px;
+            font-size: 8px;
+        }
+
+        .sidebar:not(.expanded) .sidebar-btn .nav-icon {
+            display: none;
+        }
+
+        /* =========================================
+           TOOLTIPS
+        ========================================= */
+
+        .sidebar:not(.expanded) .sidebar-btn::after {
+            content: attr(data-tooltip);
+
+            position: absolute;
+
+            left: calc(100% + 12px);
+            top: 50%;
+
+            transform:
+                translateY(-50%)
+                translateX(-5px);
+
+            padding: 7px 10px;
+
+            border-radius: 7px;
+
+            background: rgba(15,17,29,0.95);
+
+            border: 1px solid var(--border);
+
+            color: white;
+
+            font-size: 12px;
+            font-weight: 600;
+
+            white-space: nowrap;
+
+            opacity: 0;
+            pointer-events: none;
+
+            transition:
+                opacity var(--transition),
+                transform var(--transition);
+
+            box-shadow:
+                0 8px 25px rgba(0,0,0,0.3);
+
+            z-index: 9999;
+        }
+
+        .sidebar:not(.expanded) .sidebar-btn:hover::after {
+            opacity: 1;
+
+            transform:
+                translateY(-50%)
+                translateX(0);
+        }
+
+        /* =========================================
+           MAIN CONTENT
+        ========================================= */
+
+        .main-content {
+            width: 100%;
+
+            margin-left: var(--sidebar-width);
+
+            padding:
+                40px
+                30px
+                80px;
+
+            transition:
+                margin-left var(--transition);
+        }
+
+        .sidebar.expanded ~ .main-content {
+            margin-left: var(--sidebar-expanded);
+        }
+
+        .content-wrapper {
+            width: 100%;
+            max-width: 1000px;
+
+            margin: 0 auto;
+        }
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        .page-header {
+            position: relative;
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        .header-actions {
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+
+            font-size: clamp(34px, 5vw, 52px);
+
+            font-weight: 900;
+
+            letter-spacing: -1.5px;
+
+            text-shadow:
+                0 5px 25px rgba(0,0,0,0.4);
+        }
+
+        .page-header h1::after {
+            content: "";
+
+            display: block;
+
+            width: 70px;
+            height: 3px;
+
+            margin: 12px auto 0;
+
+            border-radius: 20px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    var(--primary-hover),
+                    transparent
+                );
+
+            box-shadow:
+                0 0 15px var(--primary-glow);
+        }
+
+        .subtitle {
+            margin: 14px 0 0;
+
+            color: var(--text-muted);
+
+            font-size: 14px;
+        }
+
+        .subtitle a {
+            color: var(--primary-hover);
+
+            text-decoration: none;
+
+            font-weight: 700;
+
+            transition:
+                color var(--transition),
+                text-shadow var(--transition);
+        }
+
+        .subtitle a:hover {
+            color: white;
+
+            text-shadow:
+                0 0 12px var(--primary-glow);
+        }
+
+        /* =========================================
+           INFO LINKS
+        ========================================= */
+
+        .info-links {
+            display: flex;
+            justify-content: center;
+
+            margin-bottom: 22px;
+
+            color: var(--text-muted);
+
+            font-size: 13px;
+        }
+
+        .info-link {
+            color: var(--primary-hover);
+
+            text-decoration: none;
+
+            font-weight: 700;
+
+            transition: color var(--transition);
+        }
+
+        .info-link:hover {
+            color: white;
+        }
+
+        /* =========================================
+           SEARCH
+        ========================================= */
+
+        .search-wrapper {
+            width: 100%;
+            max-width: 560px;
+            margin: 0 auto 15px;
+            position: relative;
+            padding: 1px;
+            border-radius: 14px;
+            background: linear-gradient(120deg, transparent, rgba(120,199,255,.35), transparent);
+            background-size: 220% 100%;
+            animation: searchBorder 5s linear infinite;
+        }
+
+        @keyframes searchBorder {
+            from { background-position: 0% 50%; }
+            to { background-position: 220% 50%; }
+        }
+
+        .search-wrapper::before {
+            content: "⌕";
+            position: absolute;
+            left: 17px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 20px;
+            pointer-events: none;
+            transition: color .25s ease, transform .25s ease;
+            z-index: 2;
+        }
+
+        .search-wrapper:focus-within::before {
+            color: var(--neon);
+            transform: translateY(-50%) scale(1.12);
+        }
+
+        #searchInput {
+            width: 100%;
+            height: 52px;
+
+            padding:
+                0
+                18px 0 18px 45px;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.1);
+
+            border-radius: 13px;
+
+            outline: none;
+
+            background:
+                rgba(255,255,255,0.075);
+
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+
+            color: var(--text);
+
+            font-size: 15px;
+
+            box-shadow:
+                0 8px 30px rgba(0,0,0,0.18),
+                inset 0 1px rgba(255,255,255,0.05);
+
+            transition:
+                border-color var(--transition),
+                background var(--transition),
+                box-shadow var(--transition);
+        }
+
+        #searchInput::placeholder {
+            color: rgba(255,255,255,0.45);
+        }
+
+        #searchInput:focus {
+            border-color: var(--primary);
+
+            background:
+                rgba(255,255,255,0.1);
+
+            box-shadow:
+                0 0 0 3px rgba(89,134,218,0.14),
+                0 8px 30px rgba(0,0,0,0.25);
+        }
+
+        /* =========================================
+           LOAD BUTTON
+        ========================================= */
+
+        .load-container {
+            display: flex;
+            justify-content: center;
+
+            margin-bottom: 40px;
+        }
+
+        #lolbutton {
+            padding:
+                9px
+                16px;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.1);
+
+            border-radius: 9px;
+
+            background:
+                rgba(255,255,255,0.06);
+
+            color: var(--text-muted);
+
+            font-size: 12px;
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                background var(--transition),
+                color var(--transition),
+                transform var(--transition);
+        }
+
+        #lolbutton:hover {
+            background:
+                rgba(255,255,255,0.12);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .theme-toggle {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 17px;
+            display: grid;
+            place-items: center;
+            transition: transform .22s ease, background .22s ease, box-shadow .22s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px) rotate(8deg);
+            background: var(--surface-strong);
+            box-shadow: 0 0 18px var(--primary-glow);
+        }
+
+        /* =========================================
+           LETTER SECTIONS
+        ========================================= */
+
+        .letter-section {
+            width: 100%;
+
+            margin:
+                0
+                auto
+                38px;
+
+            scroll-margin-top: 25px;
+        }
+
+        .letter-section.empty {
+            opacity: 0.4;
+        }
+
+        .letter-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+
+            margin:
+                0
+                0
+                14px;
+
+            padding:
+                0
+                4px
+                10px;
+
+            color: white;
+
+            font-size: 28px;
+            font-weight: 900;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,0.14);
+
+            text-shadow:
+                0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        .letter-header::after {
+            content: "";
+
+            flex: 1;
+
+            height: 1px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(121,170,219,0.4),
+                    transparent
+                );
+        }
+
+        .buttons-container {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 9px;
+        }
+
+        /* =========================================
+           FILE BUTTONS
+        ========================================= */
+
+        input[type="button"] {
+            width: 100%;
+            min-height: 52px;
+
+            padding:
+                14px
+                18px;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.08);
+
+            border-radius: 11px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(89,134,218,0.92),
+                    rgba(71,105,177,0.92)
+                );
+
+            color: white;
+
+            font-size: 15px;
+            font-weight: 600;
+
+            text-align: left;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 4px 12px rgba(0,0,0,0.18),
+                inset 0 1px rgba(255,255,255,0.1);
+
+            transition:
+                transform var(--transition),
+                background var(--transition),
+                box-shadow var(--transition);
+        }
+
+        input[type="button"] {
+            position: relative;
+            overflow: hidden;
+        }
+
+        input[type="button"]::before {
+            content: "▸";
+            display: inline-block;
+            margin-right: 9px;
+            opacity: .72;
+            transition: transform .22s ease, opacity .22s ease;
+        }
+
+        input[type="button"]:hover::before {
+            transform: translateX(3px);
+            opacity: 1;
+        }
+
+        input[type="button"]:hover {
+            background:
+                linear-gradient(
+                    135deg,
+                    #79aadb,
+                    #5986da
+                );
+
+            transform:
+                translateX(4px);
+
+            box-shadow:
+                0 7px 20px rgba(0,0,0,0.25),
+                0 0 15px rgba(89,134,218,0.13);
+        }
+
+        input[type="button"]:active {
+            transform:
+                translateX(2px)
+                scale(0.995);
+        }
+
+        /* =========================================
+           EMPTY MESSAGE
+        ========================================= */
+
+        .empty-message {
+            padding: 18px;
+
+            color: var(--text-muted);
+
+            text-align: center;
+
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        /* =========================================
+           SELECTION
+        ========================================= */
+
+        ::selection {
+            background:
+                rgba(121,170,219,0.35);
+
+            color: white;
+        }
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 768px) {
+
+            :root {
+                --sidebar-width: 56px;
+            }
+
+            .sidebar.expanded {
+                width: 165px;
+            }
+
+            .main-content {
+                padding:
+                    28px
+                    15px
+                    60px;
+            }
+
+            .page-header h1 {
+                font-size: 35px;
+            }
+
+            .letter-header {
+                font-size: 24px;
+            }
+
+            input[type="button"] {
+                min-height: 48px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 430px) {
+
+            :root {
+                --sidebar-width: 48px;
+            }
+
+            .sidebar {
+                padding:
+                    10px
+                    5px;
+            }
+
+            .sidebar.expanded {
+                width: 150px;
+            }
+
+            .main-content {
+                padding:
+                    22px
+                    10px
+                    50px;
+            }
+
+            .sidebar-btn {
+                min-height: 36px;
+                font-size: 12px;
+            }
+
+            .page-header h1 {
+                font-size: 29px;
+            }
+
+            .letter-header {
+                font-size: 21px;
+            }
+
+            input[type="button"] {
+                font-size: 13px;
+            }
+        }
+
+        /* =========================================
+           REDUCED MOTION
+        ========================================= */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            #particleCanvas {
+                display: none;
+            }
+
+            body::before,
+            body::after,
+            .search-wrapper {
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Particle background -->
+    <canvas id="particleCanvas" aria-hidden="true"></canvas>
+
+
+    <!-- =========================================
+         SIDEBAR
+    ========================================== -->
+
+    <nav
+        class="sidebar"
+        id="sidebar"
+        aria-label="File navigation"
+    >
+
+        <div class="sidebar-top">
+
+            <button
+                class="sidebar-toggle"
+                id="sidebarToggle"
+                type="button"
+                aria-label="Toggle navigation"
+                aria-expanded="false"
+            >
+                ☰
+            </button>
+
+            <span class="sidebar-title">
+                NAVIGATION
+            </span>
+
+        </div>
+
+        <!-- games.js populates this -->
+    </nav>
+
+
+    <!-- =========================================
+         MAIN
+    ========================================== -->
+
+    <main class="main-content">
+
+        <div class="content-wrapper">
+
+            <!-- Header -->
+            <header class="page-header">
+
+                <div class="header-actions" aria-label="Page controls">
+                    <button class="theme-toggle" id="themeToggle" type="button"
+                            aria-label="Toggle theme" title="Toggle theme">☾</button>
+                </div>
+
+                <h1>UGS Files</h1>
+
+                <p class="subtitle">
+                    Files from
+                    <a
+                        href="https://docs.google.com/document/d/1_FmH3BlSBQI7FGgAQL59-ZPe8eCxs35wel6JUyVaG8Q/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Ultimate Game Stash Google Doc
+                    </a>
+                </p>
+
+            </header>
+
+
+            <!-- Discord -->
+            <div class="info-links">
+
+                <span>
+                    Discord:
+                    <a
+                        class="info-link"
+                        href="https://discord.gg/rmVsAqkpkA"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Join Server
+                    </a>
+                </span>
+
+            </div>
+
+
+            <!-- Search -->
+            <div class="search-wrapper">
+
+                <input
+                    type="search"
+                    id="searchInput"
+                    placeholder="Search files..."
+                    autocomplete="off"
+                    aria-label="Search files"
+                >
+
+            </div>
+
+
+            <!-- Existing search functionality -->
+            <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/searchbut.js"></script>
+
+
+            <!-- Manual loader -->
+            <div class="load-container">
+
+                <button
+                    id="lolbutton"
+                    type="button"
+                >
+                    ↻ Load files manually
+                </button>
+
+            </div>
+
+
+            <!-- Game sections -->
+            <div id="sections-container">
+                <!-- games.js generates this -->
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- =========================================
+         UGS UI UPGRADES
+    ========================================== -->
+
+    <script>
+        (() => {
+            const root = document.documentElement;
+            const toggle = document.getElementById("themeToggle");
+
+            const savedTheme = localStorage.getItem("ugs-theme");
+            if (savedTheme === "light") root.dataset.theme = "light";
+
+            function syncThemeButton() {
+                const light = root.dataset.theme === "light";
+                toggle.textContent = light ? "☀" : "☾";
+                toggle.title = light ? "Switch to dark theme" : "Switch to light theme";
+                toggle.setAttribute("aria-label", toggle.title);
+            }
+
+            syncThemeButton();
+
+            toggle.addEventListener("click", () => {
+                const light = root.dataset.theme === "light";
+                if (light) {
+                    delete root.dataset.theme;
+                    localStorage.setItem("ugs-theme", "dark");
+                } else {
+                    root.dataset.theme = "light";
+                    localStorage.setItem("ugs-theme", "light");
+                }
+                syncThemeButton();
+            });
+        })();
+    </script>
+
+    <script>
+        (() => {
+            const sidebar = document.getElementById("sidebar");
+
+            function enhanceNavigation() {
+                const sections = [...document.querySelectorAll(".letter-section")];
+                const buttons = [...document.querySelectorAll(".sidebar-btn")];
+
+                buttons.forEach(button => {
+                    if (!button.querySelector(".nav-letter")) {
+                        const raw = button.textContent.trim();
+                        button.innerHTML = `
+                            <span class="nav-icon">✦</span>
+                            <span class="nav-letter">${raw.charAt(0) || "?"}</span>
+                            <span class="file-count">0</span>
+                        `;
+                    }
+
+                    const target = button.dataset.target;
+                    const section = target ? document.getElementById(target) : null;
+                    const count = section
+                        ? section.querySelectorAll('input[type="button"], .file-button').length
+                        : 0;
+
+                    const badge = button.querySelector(".file-count");
+                    if (badge) badge.textContent = count;
+                    button.setAttribute("aria-label",
+                        `${button.querySelector(".nav-letter")?.textContent || "Letter"} — ${count} files`);
+                });
+
+                // Keep the moving neon rail aligned with the active letter.
+                const active = buttons.find(b => b.classList.contains("active"));
+                if (active) {
+                    const sidebarRect = sidebar.getBoundingClientRect();
+                    const buttonRect = active.getBoundingClientRect();
+                    sidebar.style.setProperty(
+                        "--indicator-y",
+                        `${buttonRect.top - sidebarRect.top + (buttonRect.height - 56) / 2}px`
+                    );
+                }
+            }
+
+            const observer = new MutationObserver(enhanceNavigation);
+            observer.observe(sidebar, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+
+            window.addEventListener("scroll", enhanceNavigation, { passive: true });
+            window.addEventListener("resize", enhanceNavigation);
+            setTimeout(enhanceNavigation, 150);
+        })();
+    </script>
+
+    <!-- =========================================
+         SIDEBAR LOGIC
+    ========================================== -->
+
+    <script>
+        const sidebar = document.getElementById("sidebar");
+        const sidebarToggle = document.getElementById("sidebarToggle");
+
+        sidebarToggle.addEventListener("click", () => {
+
+            const expanded =
+                sidebar.classList.toggle("expanded");
+
+            sidebarToggle.setAttribute(
+                "aria-expanded",
+                expanded
+            );
+
+            sidebarToggle.textContent =
+                expanded ? "‹" : "☰";
+
+            requestAnimationFrame(() => {
+                window.dispatchEvent(new Event("resize"));
+            });
+        });
+    </script>
+
+
+    <!-- =========================================
+         MANUAL GAME.JS LOADER
+    ========================================== -->
+
+    <script>
+        document
+            .getElementById("lolbutton")
+            .addEventListener("click", function () {
+
+                if (document.getElementById("game-script")) {
+                    return;
+                }
+
+                const script =
+                    document.createElement("script");
+
+                script.id = "game-script";
+
+                script.src =
+                    "https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@latest/game.js";
+
+                script.onload = () => {
+                    this.textContent = "✓ Files loaded";
+                };
+
+                script.onerror = () => {
+                    this.textContent = "⚠ Failed to load";
+                };
+
+                document.body.appendChild(script);
+            });
+    </script>
+
+
+    <!-- =========================================
+         PARTICLE SYSTEM
+    ========================================== -->
+
+    <script>
+        (() => {
+
+            const canvas =
+                document.getElementById("particleCanvas");
+
+            const ctx =
+                canvas.getContext("2d");
+
+            const reduceMotion =
+                window.matchMedia(
+                    "(prefers-reduced-motion: reduce)"
+                ).matches;
+
+            if (reduceMotion) {
+                return;
+            }
+
+            let width = 0;
+            let height = 0;
+
+            let particles = [];
+
+            const mouse = {
+                x: null,
+                y: null,
+                radius: 130
+            };
+
+
+            /* -------------------------------------
+               PARTICLE SETTINGS
+            ------------------------------------- */
+
+            function getParticleCount() {
+
+                if (window.innerWidth < 500) {
+                    return 28;
+                }
+
+                if (window.innerWidth < 900) {
+                    return 45;
+                }
+
+                return 70;
+            }
+
+
+            /* -------------------------------------
+               RESIZE
+            ------------------------------------- */
+
+            function resizeCanvas() {
+
+                const dpr =
+                    Math.min(
+                        window.devicePixelRatio || 1,
+                        2
+                    );
+
+                width = window.innerWidth;
+                height = window.innerHeight;
+
+                canvas.width =
+                    width * dpr;
+
+                canvas.height =
+                    height * dpr;
+
+                canvas.style.width =
+                    width + "px";
+
+                canvas.style.height =
+                    height + "px";
+
+                ctx.setTransform(
+                    dpr,
+                    0,
+                    0,
+                    dpr,
+                    0,
+                    0
+                );
+
+                createParticles();
+            }
+
+
+            /* -------------------------------------
+               CREATE PARTICLES
+            ------------------------------------- */
+
+            function createParticles() {
+
+                particles = [];
+
+                const count =
+                    getParticleCount();
+
+                for (let i = 0; i < count; i++) {
+
+                    particles.push({
+
+                        x:
+                            Math.random() *
+                            width,
+
+                        y:
+                            Math.random() *
+                            height,
+
+                        size:
+                            Math.random() * 2.2 + 0.7,
+
+                        speedX:
+                            (Math.random() - 0.5)
+                            * 0.25,
+
+                        speedY:
+                            (Math.random() - 0.5)
+                            * 0.25,
+
+                        opacity:
+                            Math.random() * 0.55 + 0.2
+                    });
+                }
+            }
+
+
+            /* -------------------------------------
+               MOUSE
+            ------------------------------------- */
+
+            window.addEventListener(
+                "mousemove",
+                (event) => {
+
+                    mouse.x = event.clientX;
+                    mouse.y = event.clientY;
+                },
+                { passive: true }
+            );
+
+
+            window.addEventListener(
+                "mouseleave",
+                () => {
+
+                    mouse.x = null;
+                    mouse.y = null;
+                }
+            );
+
+
+            /* -------------------------------------
+               DRAW PARTICLES
+            ------------------------------------- */
+
+            function drawParticle(particle) {
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    particle.x,
+                    particle.y,
+                    particle.size,
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fillStyle =
+                    `rgba(
+                        121,
+                        170,
+                        219,
+                        ${particle.opacity}
+                    )`;
+
+                ctx.fill();
+            }
+
+
+            /* -------------------------------------
+               CONNECT PARTICLES
+            ------------------------------------- */
+
+            function connectParticles() {
+
+                const maxDistance = 115;
+
+                for (
+                    let i = 0;
+                    i < particles.length;
+                    i++
+                ) {
+
+                    for (
+                        let j = i + 1;
+                        j < particles.length;
+                        j++
+                    ) {
+
+                        const a = particles[i];
+                        const b = particles[j];
+
+                        const dx =
+                            a.x - b.x;
+
+                        const dy =
+                            a.y - b.y;
+
+                        const distance =
+                            Math.sqrt(
+                                dx * dx +
+                                dy * dy
+                            );
+
+                        if (
+                            distance <
+                            maxDistance
+                        ) {
+
+                            const opacity =
+                                (1 -
+                                distance /
+                                maxDistance)
+                                * 0.13;
+
+                            ctx.beginPath();
+
+                            ctx.moveTo(
+                                a.x,
+                                a.y
+                            );
+
+                            ctx.lineTo(
+                                b.x,
+                                b.y
+                            );
+
+                            ctx.strokeStyle =
+                                `rgba(
+                                    89,
+                                    134,
+                                    218,
+                                    ${opacity}
+                                )`;
+
+                            ctx.lineWidth = 0.7;
+
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+
+            /* -------------------------------------
+               UPDATE
+            ------------------------------------- */
+
+            function updateParticles() {
+
+                for (const particle of particles) {
+
+                    particle.x +=
+                        particle.speedX;
+
+                    particle.y +=
+                        particle.speedY;
+
+
+                    /* Wrap around screen */
+
+                    if (
+                        particle.x < -10
+                    ) {
+                        particle.x =
+                            width + 10;
+                    }
+
+                    if (
+                        particle.x >
+                        width + 10
+                    ) {
+                        particle.x = -10;
+                    }
+
+                    if (
+                        particle.y < -10
+                    ) {
+                        particle.y =
+                            height + 10;
+                    }
+
+                    if (
+                        particle.y >
+                        height + 10
+                    ) {
+                        particle.y = -10;
+                    }
+
+
+                    /* Mouse interaction */
+
+                    if (
+                        mouse.x !== null &&
+                        mouse.y !== null
+                    ) {
+
+                        const dx =
+                            particle.x -
+                            mouse.x;
+
+                        const dy =
+                            particle.y -
+                            mouse.y;
+
+                        const distance =
+                            Math.sqrt(
+                                dx * dx +
+                                dy * dy
+                            );
+
+                        if (
+                            distance <
+                            mouse.radius
+                        ) {
+
+                            const force =
+                                (
+                                    mouse.radius -
+                                    distance
+                                ) /
+                                mouse.radius;
+
+                            const angle =
+                                Math.atan2(
+                                    dy,
+                                    dx
+                                );
+
+                            particle.x +=
+                                Math.cos(angle)
+                                * force
+                                * 0.35;
+
+                            particle.y +=
+                                Math.sin(angle)
+                                * force
+                                * 0.35;
+                        }
+                    }
+                }
+            }
+
+
+            /* -------------------------------------
+               ANIMATION
+            ------------------------------------- */
+
+            function animate() {
+
+                ctx.clearRect(
+                    0,
+                    0,
+                    width,
+                    height
+                );
+
+                updateParticles();
+
+                connectParticles();
+
+                for (const particle of particles) {
+                    drawParticle(particle);
+                }
+
+                requestAnimationFrame(
+                    animate
+                );
+            }
+
+
+            /* -------------------------------------
+               START
+            ------------------------------------- */
+
+            window.addEventListener(
+                "resize",
+                resizeCanvas
+            );
+
+            resizeCanvas();
+
+            animate();
+
+        })();
+    </script>
+
+
+    <!-- =========================================
+         GAME LIST
+    ========================================== -->
+
+    <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js"></script>
+
+
+    <!-- =========================================
+         ACTIVE LETTER TRACKING
+    ========================================== -->
+
+    <script>
+        /*
+         * Wait until games.js has created the
+         * letter sections, then observe them.
+         *
+         * IntersectionObserver is designed for
+         * detecting when elements enter/leave the
+         * viewport without constantly doing manual
+         * scroll calculations.
+         */
+
+        function setupActiveLetters() {
+
+            const sections =
+                document.querySelectorAll(
+                    ".letter-section"
+                );
+
+            const buttons =
+                document.querySelectorAll(
+                    ".sidebar-btn"
+                );
+
+            if (
+                !sections.length ||
+                !buttons.length
+            ) {
+                return;
+            }
+
+            const observer =
+                new IntersectionObserver(
+                    (entries) => {
+
+                        entries.forEach(
+                            (entry) => {
+
+                                if (
+                                    !entry.isIntersecting
+                                ) {
+                                    return;
+                                }
+
+                                const id =
+                                    entry.target.id;
+
+                                buttons.forEach(
+                                    (button) => {
+
+                                        button.classList.toggle(
+                                            "active",
+                                            button.dataset.target === id
+                                        );
+                                    }
+                                );
+                            }
+                        );
+
+                    },
+                    {
+                        root: null,
+
+                        rootMargin:
+                            "-20% 0px -65% 0px",
+
+                        threshold: 0
+                    }
+                );
+
+
+            sections.forEach(
+                section => observer.observe(section)
+            );
+        }
+
+
+        /*
+         * games.js may populate the DOM after
+         * this script runs, so give it a moment.
+         */
+
+        const observer =
+            new MutationObserver(() => {
+
+                const sections =
+                    document.querySelectorAll(
+                        ".letter-section"
+                    );
+
+                const buttons =
+                    document.querySelectorAll(
+                        ".sidebar-btn"
+                    );
+
+                if (
+                    sections.length &&
+                    buttons.length
+                ) {
+
+                    setupActiveLetters();
+
+                    observer.disconnect();
+                }
+
+            });
+
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+    </script>
+
+</body>
+</html>
+
+```
